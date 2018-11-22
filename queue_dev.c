@@ -44,9 +44,6 @@ struct qset {
 
 struct queue_dev {
     struct qset *data;
-    int quantum;
-    int qset;
-    unsigned long size;
     struct semaphore sem;
     struct cdev cdev;
 };
@@ -126,3 +123,30 @@ out:
     return retval;
 }
 
+ssize_t scull_write(struct file *filp, const char __user *buf, size_t count,
+                    loff_t *f_pos) {
+    struct scull_dev *dev = filp->private_data;
+    ssize_t retval = -ENOMEM;
+    char* text = kmalloc(count * sizeof(char), GFP_KERNEL);
+    
+    if (down_interruptible(&dev->sem))
+        return -ERESTARTSYS;
+    
+    if (!dev->data) {
+        dev->data = kmalloc(sizeof(struct qset), GFP_KERNEL);
+        if (!dev->data)
+            goto out;
+        memset(dev->data, 0, sizeof(struct qset));
+    }
+    
+    if (copy_from_user(text, buf, count)) {
+        retval = -EFAULT;
+        goto out;
+    }
+    
+    enqueue(dev->data->data, text);
+    retval = count;
+out:
+    up(&dev->sem);
+    return retval;
+}
