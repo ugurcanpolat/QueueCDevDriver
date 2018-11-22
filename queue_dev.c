@@ -74,3 +74,18 @@ int queue_trim(struct queue_dev *dev) {
     return 0;
 }
 
+int queue_open(struct inode *inode, struct file *filp) {
+    struct queue_dev *dev;
+    
+    dev = container_of(inode->i_cdev, struct queue_dev, cdev);
+    filp->private_data = dev;
+    
+    /* trim the device if open was write-only */
+    if ((filp->f_flags & O_ACCMODE) == O_WRONLY) {
+        if (down_interruptible(&dev->sem))
+            return -ERESTARTSYS;
+        queue_trim(dev);
+        up(&dev->sem);
+    }
+    return 0;
+}
