@@ -46,7 +46,7 @@ String* dequeue(Queue* q) {
     else
         q->front = q->front->next;
 
-    return temp;
+    return dequeuedNode;
 }
 
 
