@@ -89,3 +89,7 @@ int queue_open(struct inode *inode, struct file *filp) {
     }
     return 0;
 }
+
+int queue_release(struct inode *inode, struct file *filp) {
+    return 0;
+}
