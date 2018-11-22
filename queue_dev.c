@@ -53,3 +53,24 @@ struct queue_dev {
 
 struct queue_dev *queue_devices;
 
+int queue_trim(struct queue_dev *dev) {
+    struct qset *ptr = dev->data;
+    struct qset *next;
+    
+    while(ptr) {
+        while(ptr->data->front) {
+            kfree(dequeue(ptr->data));
+        }
+        
+        next = ptr->next;
+        kfree(ptr);
+        ptr = next;
+    }
+    
+    dev->data = NULL;
+    dev->quantum = queue_quantum;
+    dev->qset = queue_qset;
+    dev->size = 0;
+    return 0;
+}
+
