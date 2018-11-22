@@ -37,4 +37,19 @@ module_param(queue_qset, int, S_IRUGO);
 
 MODULE_AUTHOR("Musa Anıl Dogan, Ugurcan Polat, Umut Cem Avin");
 
+struct qset {
+    Queue* data;
+    struct qset* next;
+}
+
+struct queue_dev {
+    struct qset *data;
+    int quantum;
+    int qset;
+    unsigned long size;
+    struct semaphore sem;
+    struct cdev cdev;
+};
+
+struct queue_dev *queue_devices;
 
