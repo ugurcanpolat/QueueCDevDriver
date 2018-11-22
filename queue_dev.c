@@ -20,20 +20,14 @@
 
 #define QUEUE_MAJOR 0
 #define QUEUE_NR_DEVS 4
-#define QUEUE_QUANTUM 4000
-#define QUEUE_QSET 1000
 
 int queue_major = QUEUE_MAJOR;
 int queue_minor = 0;
 int queue_nr_devs = QUEUE_NR_DEVS;
-int queue_quantum = QUEUE_QUANTUM;
-int queue_qset = QUEUE_QSET;
 
 module_param(queue_major, int, S_IRUGO);
 module_param(queue_minor, int, S_IRUGO);
 module_param(queue_nr_devs, int, S_IRUGO);
-module_param(queue_quantum, int, S_IRUGO);
-module_param(queue_qset, int, S_IRUGO);
 
 MODULE_AUTHOR("Musa Anıl Dogan, Ugurcan Polat, Umut Cem Avin");
 
@@ -65,8 +59,6 @@ int queue_trim(struct queue_dev *dev) {
     }
     
     dev->data = NULL;
-    dev->quantum = queue_quantum;
-    dev->qset = queue_qset;
     dev->size = 0;
     return 0;
 }
