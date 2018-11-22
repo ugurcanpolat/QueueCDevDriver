@@ -93,3 +93,36 @@ int queue_open(struct inode *inode, struct file *filp) {
 int queue_release(struct inode *inode, struct file *filp) {
     return 0;
 }
+
+ssize_t queue_read(struct file *filp, char __user *buf, size_t count,
+                   loff_t *f_pos) {
+    struct queue_dev *dev = filp->private_data;
+    ssize_t retval = 0;
+    char* concatenated, temp;
+    
+    if (down_interruptible(&dev->sem))
+        return -ERESTARTSYS;
+    
+    if (dev->data == NULL)
+        goto out;
+    
+    temp = dev->data->data->front;
+    while (temp) {
+        strcat(concatenated, temp);
+        temp = temp->next;
+    }
+    
+    count = strlen(concatenated);
+    
+    if (copy_to_user(buf, concatenated, count)) {
+        retval = -EFAULT;
+        goto out;
+    }
+    
+    retval = count;
+    
+out:
+    up(&dev->sem);
+    return retval;
+}
+
