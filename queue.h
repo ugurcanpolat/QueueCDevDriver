@@ -11,14 +11,14 @@ typedef struct queue_t {
 } Queue;
 
 String* newString(char* text) {
-    String *newData = (String*) kmalloc(sizeof(String));
+    String *newData = (String*) kmalloc(sizeof(String), GFP_KERNEL);
     newData->data = text;
     newData->next = NULL;
     return newData;
 }
 
 Queue* newQueue() {
-    Queue *q = (Queue*) kmalloc(sizeof(Queue));
+    Queue *q = (Queue*) kmalloc(sizeof(Queue), GFP_KERNEL);
     q->front = q->back = NULL;
     return q;
 }
