@@ -12,6 +12,8 @@
 #include <linux/seq_file.h>
 #include <linux/cdev.h>
 
+#include <include/linux/string.h> // strcpy(), strcat()
+
 #include <asm/switch_to.h>        /* cli(), *_flags */
 #include <asm/uaccess.h>    /* copy_*_user */
 
@@ -31,13 +33,9 @@ module_param(queue_nr_devs, int, S_IRUGO);
 
 MODULE_AUTHOR("Musa Anıl Dogan, Ugurcan Polat, Umut Cem Avin");
 
-struct qset {
-    Queue* data;
-    struct qset* next;
-}
-
 struct queue_dev {
-    struct qset *data;
+    Queue* data;
+    unsigned int number_of_characters;
     struct semaphore sem;
     struct cdev cdev;
 };
@@ -45,21 +43,16 @@ struct queue_dev {
 struct queue_dev *queue_devices;
 
 int queue_trim(struct queue_dev *dev) {
-    struct qset *ptr = dev->data;
-    struct qset *next;
+    struct Queue *ptr = dev->data;
     
-    while(ptr) {
-        while(ptr->data->front) {
-            kfree(dequeue(ptr->data));
-        }
-        
-        next = ptr->next;
-        kfree(ptr);
-        ptr = next;
+    while(ptr->front) {
+        kfree(dequeue(ptr->data));
     }
     
+    kfree(ptr);
+    
     dev->data = NULL;
-    dev->size = 0;
+    dev->number_of_characters = 0;
     return 0;
 }
 
@@ -86,6 +79,7 @@ int queue_release(struct inode *inode, struct file *filp) {
 ssize_t queue_read(struct file *filp, char __user *buf, size_t count,
                    loff_t *f_pos) {
     struct queue_dev *dev = filp->private_data;
+    unsigned int number_of_characters = dev->number_of_characters + 1;
     ssize_t retval = 0;
     char* concatenated, temp;
     
@@ -95,18 +89,21 @@ ssize_t queue_read(struct file *filp, char __user *buf, size_t count,
     if (dev->data == NULL)
         goto out;
     
-    temp = dev->data->data->front;
-    while (temp) {
-        strcat(concatenated, temp);
-        temp = temp->next;
+    concatenated = kmalloc(number_of_characters * sizeof(char), GFP_KERNEL);
+    memset(concatenated, '\0', number_of_characters);
+    
+    for (temp = dev->data->front; temp; temp = temp->next) {
+        strcat(concatenated, temp->data);
     }
     
-    count = strlen(concatenated);
+    count = number_of_characters;
     
     if (copy_to_user(buf, concatenated, count)) {
         retval = -EFAULT;
         goto out;
     }
+    
+    kfree(concatenated);
     
     retval = count;
     
@@ -119,26 +116,34 @@ ssize_t queue_write(struct file *filp, const char __user *buf, size_t count,
                     loff_t *f_pos) {
     struct queue_dev *dev = filp->private_data;
     ssize_t retval = -ENOMEM;
-    char* text = kmalloc(count * sizeof(char), GFP_KERNEL);
+    char* text;
     
     if (down_interruptible(&dev->sem))
         return -ERESTARTSYS;
     
     if (!dev->data) {
-        dev->data = kmalloc(sizeof(struct qset), GFP_KERNEL);
+        dev->data = new_queue();
         if (!dev->data)
             goto out;
-        memset(dev->data, 0, sizeof(struct qset));
     }
+    
+    text = kmalloc(count * sizeof(char), GFP_KERNEL);
+    if (!text)
+        goto out;
     
     if (copy_from_user(text, buf, count)) {
         retval = -EFAULT;
         goto out;
     }
     
-    enqueue(dev->data->data, text);
+    if (enqueue(dev->data, text)) {
+        retval = -EFAULT;
+        goto out;
+    }
+    
     retval = count;
 out:
     up(&dev->sem);
     return retval;
 }
+
