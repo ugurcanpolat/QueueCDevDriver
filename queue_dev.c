@@ -90,6 +90,10 @@ ssize_t queue_read(struct file *filp, char __user *buf, size_t count,
         goto out;
     
     concatenated = kmalloc(number_of_characters * sizeof(char), GFP_KERNEL);
+    
+    if (!concatenated)
+        goto out;
+    
     memset(concatenated, '\0', number_of_characters);
     
     for (temp = dev->data->front; temp; temp = temp->next) {
@@ -105,7 +109,7 @@ ssize_t queue_read(struct file *filp, char __user *buf, size_t count,
     
     kfree(concatenated);
     
-    retval = count;
+    retval = count - 1;
     
 out:
     up(&dev->sem);
