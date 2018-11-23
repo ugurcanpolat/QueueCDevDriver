@@ -83,6 +83,9 @@ ssize_t queue_read(struct file *filp, char __user *buf, size_t count,
     ssize_t retval = 0;
     char* concatenated, temp;
     
+    if (dev == queue_devices[0])
+        return -EINVAL;
+    
     if (down_interruptible(&dev->sem))
         return -ERESTARTSYS;
     
@@ -121,6 +124,9 @@ ssize_t queue_write(struct file *filp, const char __user *buf, size_t count,
     struct queue_dev *dev = filp->private_data;
     ssize_t retval = -ENOMEM;
     char* text;
+    
+    if (dev == queue_devices[0])
+        return -EINVAL;
     
     if (down_interruptible(&dev->sem))
         return -ERESTARTSYS;
