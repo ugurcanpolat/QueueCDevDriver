@@ -141,9 +141,9 @@ ssize_t queue_write(struct file *filp, const char __user *buf, size_t count,
         goto out;
     }
     
+    dev->number_of_characters += count;
     retval = count;
 out:
     up(&dev->sem);
     return retval;
 }
-
