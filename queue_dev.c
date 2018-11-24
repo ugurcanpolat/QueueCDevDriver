@@ -31,7 +31,7 @@ module_param(queue_major, int, S_IRUGO);
 module_param(queue_minor, int, S_IRUGO);
 module_param(queue_nr_devs, int, S_IRUGO);
 
-MODULE_AUTHOR("Musa Anıl Dogan, Ugurcan Polat, Umut Cem Avin");
+MODULE_AUTHOR("Musa Anil Dogan, Ugurcan Polat, Umut Cem Avin");
 MODULE_LICENSE("Dual BSD/GPL");
 
 struct queue_dev {
@@ -94,9 +94,9 @@ ssize_t queue_read(struct file *filp, char __user *buf, size_t count,
     if (down_interruptible(&dev->sem))
         return -ERESTARTSYS;
     
-    if (dev->data == NULL)
+    if (dev->data == NULL || dev->data->front == NULL)
         goto out;
-        
+    
     if (*f_pos >= number_of_characters)
 		goto out;
     
@@ -185,7 +185,7 @@ out:
 
 long queue_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) {
     int err = 0;
-    int retval = 0;
+    int retval = -ENODATA;
     char* text = NULL;
     struct queue_dev* dev;
     
@@ -218,6 +218,9 @@ long queue_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) {
         if (dev == queue_devices) {
             int i;
             for (i = 1; i < queue_nr_devs; i++) {
+				if ((queue_devices+i)->data == NULL)
+					continue;
+				
                 if ((queue_devices+i)->data->front) {
                     text = dequeue((queue_devices+i)->data);
                     (queue_devices+i)->number_of_characters -= strlen(text);
@@ -226,17 +229,30 @@ long queue_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) {
                 }
             }
             
+            if (text == NULL)
+				goto out;
+
         } else {
+            if (dev->data == NULL)
+                goto out;
+			
             text = dequeue(dev->data);
+            
+            if (text == NULL)
+				goto out;
+            
             dev->number_of_characters -= strlen(text);
             printk(KERN_NOTICE "String \"%s\" is popped.\n", text);
         }
         
-        retval = __put_user(text, (char __user **)arg);
+        retval = copy_to_user((char __user *) arg, text, strlen(text));
         kfree(text);
     }
     else
         return -ENOTTY;
+        
+out:
+	printk(KERN_NOTICE "IOCTL Pop operation finished.\n");
     return retval;
 }
 

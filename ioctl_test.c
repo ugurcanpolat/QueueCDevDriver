@@ -10,11 +10,12 @@ int main(int argc, char **argv) {
 	
 	if (fd == -1) 
 		return 0;
-		
-	char* arg = malloc(sizeof(char)*100);
-		
-	if (ioctl(fd, QUEUE_POP, &arg) < 0) {
-		return 0;
+ 	
+ 	char* arg = malloc(sizeof(char) * 100);
+ 	memset(arg, '\0', sizeof(char) * 100);
+ 	
+	if (ioctl(fd, QUEUE_POP, arg) < 0) {
+		return -1;
 	}
 	
 	printf("Popped string: %s\n", arg);
