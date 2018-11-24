@@ -1,27 +1,28 @@
 #include <linux/slab.h> // kmalloc(), kfree()
-#include <include/linux/string.h> // strcpy()
+#include <linux/string.h> // strcpy()
 
 #define EENQ 1
 
-typedef struct string_t {
+struct node {
     char* data;
-    String *next;
-} String;
+    struct node *next;
+};
 
-typedef struct queue_t {
-    String *front;
-    String *back;
-} Queue;
+struct queue {
+    struct node *front;
+    struct node *back;
+};
 
-String* new_string(char* text) {
-    String *new_data = (String*) kmalloc(sizeof(String), GFP_KERNEL);
-    
+struct node* new_string(char* text) {
+    struct node *new_data = (struct node*) kmalloc(sizeof(struct node), GFP_KERNEL);
+    unsigned int len;
+     
     if (!new_data)
         return NULL;
     
-    memset(new_data, 0, len);
+    memset(new_data, 0, sizeof(struct node));
     
-    unsigned int len = strlen(text) + 1;
+    len = strlen(text) + 1;
     
     new_data->data = (char*) kmalloc(len * sizeof(char), GFP_KERNEL);
     
@@ -38,25 +39,24 @@ String* new_string(char* text) {
     return new_data;
 }
 
-Queue* new_queue() {
-    Queue *q = (Queue*) kmalloc(sizeof(Queue), GFP_KERNEL);
+struct queue* new_queue(void) {
+    struct queue *q = (struct queue*) kmalloc(sizeof(struct queue), GFP_KERNEL);
     
     if (!q)
         return NULL;
     
-    memset(dev->data, 0, sizeof(Queue));
+    memset(q, 0, sizeof(struct queue));
     
     q->front = q->back = NULL;
     return q;
 }
 
-unsigned int enqueue(Queue* q, char* text) {
-    String* temp = new_string(text);
+unsigned int enqueue(struct queue* q, char* text) {
+    struct node* temp = new_string(text);
+    unsigned int retval = 0;
     
     if (!temp)
         return EENQ;
-    
-    unsigned int retval = 0;
     
     if (q->front == NULL) {
         q->front = q->back = temp;
@@ -68,18 +68,21 @@ unsigned int enqueue(Queue* q, char* text) {
     return retval;
 }
 
-char* dequeue(Queue* q) {
+char* dequeue(struct queue* q) {
+	struct node* dequeued_node;
+	char* text;
+	
     if (q->front == NULL)
         return NULL;
     
-    String* dequeued_node = q->front;
+    dequeued_node = q->front;
     
     if (q->front->next == NULL)
         q->front = q->back = NULL;
     else
         q->front = q->front->next;
     
-    char* text = dequeued_node->data;
+    text = dequeued_node->data;
     
     kfree(dequeued_node);
 
